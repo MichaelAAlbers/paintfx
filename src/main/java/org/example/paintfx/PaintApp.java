@@ -825,10 +825,23 @@ public class PaintApp extends Application {
         }
     }
 
-    public void clearCanvas(){
-        gc.setFill(Color.WHITE);
-        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+    public void clearCanvas() {
+        // Create an alert for confirmation
+        Alert alert = new Alert(AlertType.CONFIRMATION);
+        alert.setTitle("Confirm Clear");
+        alert.setHeaderText("Are you sure you want to clear the canvas?");
+
+        // Show the dialog and wait for a response
+        alert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                // User chose OK, clear the canvas
+                gc.setFill(Color.WHITE);
+                gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+            }
+            // If the user chose CANCEL or closed the dialog, do nothing
+        });
     }
+
 
     //good ol main, not much to see here
     public static void main(String[] args) {
