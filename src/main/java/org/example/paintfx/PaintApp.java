@@ -18,7 +18,6 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
@@ -133,7 +132,6 @@ public class PaintApp extends Application {
         ShapeTool starTool = new StarTool(gc, starButton);
         ShapeTool polygonTool = new PolygonTool(gc, polygonButton);
         MoveSelectionTool moveSelectionTool = new MoveSelectionTool(gc, moveSelectionButton, stackPane);
-        CopyPasteTool copyPasteTool = new CopyPasteTool(gc, copyPasteButton, stackPane);
         TextTool textTool = new TextTool(gc, textButton);
         VarStarTool varStarTool = new VarStarTool(gc, varStarButton);
 
@@ -147,7 +145,6 @@ public class PaintApp extends Application {
         polygonButton.setOnAction(e->currentTool = polygonTool);
         moveSelectionButton.setOnAction(e->currentTool = moveSelectionTool);
         clearButton.setOnAction(e->clearCanvas());
-        copyPasteButton.setOnAction(e -> currentTool = copyPasteTool);
         textButton.setOnAction(e-> currentTool = textTool);
         varStarButton.setOnAction(e -> currentTool = varStarTool);
 
@@ -159,6 +156,16 @@ public class PaintApp extends Application {
 
         Button redoButton = new Button("Redo");
         redoButton.setOnAction(e -> undoRedo.redo());
+
+        //copy and paste buttons
+        Button copyButton = new Button("Copy");
+        copyButton.setOnAction(e -> moveSelectionTool.copySelection());
+
+        Button pasteButton = new Button("Paste");
+        pasteButton.setOnAction(e -> {
+            // You may want to specify where to paste; for simplicity, we use fixed coordinates
+            moveSelectionTool.pasteSelection(50, 50); // Adjust as needed
+        });
 
 
         canvas.setOnMousePressed(event -> {
@@ -198,7 +205,8 @@ public class PaintApp extends Application {
             redoButton,
             clearButton,
             textButton,
-            moveSelectionButton
+            moveSelectionButton,
+            copyButton, pasteButton
         );
 
         ToolBar toolBar2 = new ToolBar(
@@ -223,6 +231,7 @@ public class PaintApp extends Application {
         gridPane.add(toolBar1, 0 ,1);
         gridPane.add(toolBar2, 0 ,2);
         gridPane.add(scrollPane, 0, 3);
+
 
         // Scene setup
         Scene scene = new Scene(gridPane, initialWidth, initialHeight);
