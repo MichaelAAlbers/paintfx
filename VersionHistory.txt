@@ -1,0 +1,30 @@
+PaintFX v1.0
+
+
+New features:
+* Open Image
+* Save Image
+* Save as
+* menu bar
+* .jpg, .png, .bmp support and conversion
+
+Known issues:
+
+* Not on GitHub
+
+Expected next sprint:
+
+* draw a line (which would become part of the saved image / save an image with those edits)
+
+* manage an image larger than the window and the screen (up to you how to do this)
+
+* allow you to control the width of the line drawn
+
+* have a color chooser (it is NOT required to impact the line, yet)
+
+* have a help menu item with help and about options; about should be a separate window.
+
+
+Links:
+
+  *output test: https://streamable.com/ba4bws * Demo: TBD * Github: TBD
