@@ -30,7 +30,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.FileChooser;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.ScrollPane;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -69,18 +68,21 @@ public class PaintApp extends Application {
     private double eraserWidth = 10;
 
     private File currentFile;                                   //for saving loaded file/displayed image to a file
-    final GraphicsContext gc = canvas.getGraphicsContext2D();  //interacting with the canvas
-
-
-
-
+    GraphicsContext gc = canvas.getGraphicsContext2D();  //interacting with the canvas
 
     StackPane stackPane = new StackPane(canvas);     //stackpane with imageView as a base and the canvas layered over it
-    ScrollPane scrollPane = new ScrollPane();
 
+    private TabPane tabPane;
+
+    UndoRedo undoRedo = new UndoRedo(canvas, gc);
 
     @Override
     public void start(Stage primaryStage) {
+        tabPane = new TabPane();
+
+        // Add an initial tab on startup
+        addNewTab();
+        addNewTab();
 
         ////////////////////////////////////////////////////////////////////////
         //add blank image for default imageview
@@ -93,14 +95,7 @@ public class PaintApp extends Application {
         // Create MenuBar
         MenuBar menuBar = new MenuBar();
 
-        //scroll pane for traversing large images
-        scrollPane.setContent(stackPane);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setFitToHeight(true);
 
-        // Bind ScrollPane size to the scene size, so it matches the window
-        scrollPane.prefWidthProperty().bind(primaryStage.widthProperty());
-        scrollPane.prefHeightProperty().bind(primaryStage.heightProperty());
 
         //bind stack pane to canvas dimensions
         stackPane.prefWidthProperty().bind(canvas.widthProperty());
@@ -131,7 +126,7 @@ public class PaintApp extends Application {
         ShapeTool triangleTool = new TriangleTool(gc, triangleButton);
         ShapeTool starTool = new StarTool(gc, starButton);
         ShapeTool polygonTool = new PolygonTool(gc, polygonButton);
-        MoveSelectionTool moveSelectionTool = new MoveSelectionTool(gc, moveSelectionButton, stackPane);
+        MoveSelectionTool moveSelectionTool = new MoveSelectionTool(gc, moveSelectionButton, this.stackPane);
         TextTool textTool = new TextTool(gc, textButton);
         VarStarTool varStarTool = new VarStarTool(gc, varStarButton);
 
@@ -148,7 +143,6 @@ public class PaintApp extends Application {
         textButton.setOnAction(e-> currentTool = textTool);
         varStarButton.setOnAction(e -> currentTool = varStarTool);
 
-        UndoRedo undoRedo = new UndoRedo(canvas, gc);
 
         // Undo and Redo buttons
         Button undoButton = new Button("Undo");
@@ -168,24 +162,6 @@ public class PaintApp extends Application {
         });
 
 
-        canvas.setOnMousePressed(event -> {
-            if (currentTool != null) {
-                currentTool.onMousePressed(event);
-                undoRedo.pushToUndoStack();
-            }
-        });
-
-        canvas.setOnMouseDragged(event -> {
-            if (currentTool != null) {
-                currentTool.onMouseDragged(event, fillColor.getValue(), borderColor.getValue(), borderWidth);
-            }
-        });
-
-        canvas.setOnMouseReleased(event -> {
-            if (currentTool != null) {
-                currentTool.onMouseReleased(event, fillColor.getValue(), borderColor.getValue(), borderWidth);
-            }
-        });
 
 
         //adds menu dropdowns to menubar, see functions themselves for more details
@@ -230,7 +206,7 @@ public class PaintApp extends Application {
         gridPane.add(menuBar,0,0);
         gridPane.add(toolBar1, 0 ,1);
         gridPane.add(toolBar2, 0 ,2);
-        gridPane.add(scrollPane, 0, 3);
+        gridPane.add(tabPane,0, 3);
 
 
         // Scene setup
@@ -303,10 +279,6 @@ public class PaintApp extends Application {
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 gc.drawImage(image, 0, 0);
 
-
-                // Resize ScrollPane to fit the window size
-                scrollPane.setPrefViewportWidth(image.getWidth());
-                scrollPane.setPrefViewportHeight(image.getHeight());
 
                 currentFile = file;
             } catch (IOException ex) {
@@ -851,6 +823,84 @@ public class PaintApp extends Application {
         });
     }
 
+    // Add a method to create a new tab with its own canvas
+    private void addNewTab() {
+        // Create a new tab
+        Tab tab = new Tab("Canvas " + (tabPane.getTabs().size() + 1));
+        tab.setClosable(true);
+
+        // Create a StackPane to hold the Canvas
+        StackPane localStackPane = new StackPane();
+        localStackPane.setAlignment(Pos.TOP_LEFT);
+
+        // Create a Canvas for the new tab
+        Canvas localCanvas = new Canvas(initialWidth, initialHeight);
+        GraphicsContext localGc = localCanvas.getGraphicsContext2D();
+        localGc.setFill(Color.WHITE);
+        localGc.fillRect(0, 0, localCanvas.getWidth(), localCanvas.getHeight());
+
+        // Initialize UndoRedo for this canvas
+        UndoRedo localUndoRedo = new UndoRedo(localCanvas, localGc);
+
+        // Add the canvas to the StackPane
+        localStackPane.getChildren().add(localCanvas);
+
+        // Set the content of the tab to the StackPane
+        tab.setContent(localStackPane);
+
+        // Add the new tab to the TabPane
+        tabPane.getTabs().add(tab);
+
+        // Select the newly added tab
+        tabPane.getSelectionModel().select(tab);
+
+        // Set the current canvas, gc, and stackPane for drawing on this tab
+        this.canvas = localCanvas;
+        this.gc = localGc;
+        this.stackPane = localStackPane;
+        this.undoRedo = localUndoRedo;
+
+        // Setup event handlers for the new canvas
+        setupCanvasEventHandlers(localCanvas, localUndoRedo);
+
+        // Update the current tool and canvas when switching between tabs
+        tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab != null) {
+                StackPane selectedStackPane = (StackPane) newTab.getContent();
+                Canvas selectedCanvas = (Canvas) selectedStackPane.getChildren().get(0);
+                GraphicsContext selectedGc = selectedCanvas.getGraphicsContext2D();
+                this.canvas = selectedCanvas;
+                this.gc = selectedGc;
+                this.stackPane = selectedStackPane;
+                this.undoRedo = new UndoRedo(selectedCanvas, selectedGc);  // Update undoRedo stack for the current canvas
+            }
+        });
+    }
+
+    // Setup event handlers for the given canvas, graphics context, and undoRedo stack
+    private void setupCanvasEventHandlers(Canvas canvas, UndoRedo undoRedo) {
+        // Handle mouse press for drawing and pushing to undo stack
+        canvas.setOnMousePressed(event -> {
+            if (currentTool != null) {
+                currentTool.onMousePressed(event);
+                undoRedo.pushToUndoStack(); // Save the current state for undo
+            }
+        });
+
+        // Handle mouse drag for drawing
+        canvas.setOnMouseDragged(event -> {
+            if (currentTool != null) {
+                currentTool.onMouseDragged(event, fillColor.getValue(), borderColor.getValue(), borderWidth);
+            }
+        });
+
+        // Handle mouse release to finalize drawing
+        canvas.setOnMouseReleased(event -> {
+            if (currentTool != null) {
+                currentTool.onMouseReleased(event, fillColor.getValue(), borderColor.getValue(), borderWidth);
+            }
+        });
+    }
 
     //good ol main, not much to see here
     public static void main(String[] args) {
