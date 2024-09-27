@@ -88,6 +88,10 @@ public class PaintApp extends Application {
 
     UndoRedo undoRedo = new UndoRedo(canvas, gc);
 
+    private AutosaveManager autosaveManager;
+    private Label countdownLabel;
+    private CheckBox displayCountdownCheckBox;
+
     @Override
     public void start(Stage primaryStage) throws IOException {
         tabPane = new TabPane();
@@ -222,8 +226,20 @@ public class PaintApp extends Application {
         addEditMenu(menuBar, moveSelectionTool);
         addHelpMenu(menuBar, primaryStage);
 
+        countdownLabel = new Label();
+        displayCountdownCheckBox = new CheckBox("Show autosave countdown");
+
+        Button saveButton = new Button("Save Now");
+        saveButton.setOnAction(e -> {
+            autosaveManager.autosaveCanvas();  // Trigger manual save
+            autosaveManager.resetTimer();  // Reset the timer after manual save
+        });
+
+        VBox autoSaver = new VBox(10, countdownLabel, displayCountdownCheckBox, saveButton);
+
         //tool bar for drawing tools
         ToolBar toolBar1 = new ToolBar(
+            autoSaver,
             createDrawButton(),                 //draw toggle
             createLineColorPicker(),                         //color chooser
             createLineWidthSlider(),           //width slider
@@ -268,6 +284,12 @@ public class PaintApp extends Application {
         undoRedo.pushToUndoStack();
         primaryStage.setScene(scene);
         primaryStage.show();
+
+
+        // Start autosave manager
+        autosaveManager = new AutosaveManager(canvas, countdownLabel, displayCountdownCheckBox);
+        autosaveManager.startAutosave();  // Start autosaving
+
 
         //CTRL + S to save as
         scene.getAccelerators().put(
@@ -1112,6 +1134,11 @@ public class PaintApp extends Application {
         deflaterOutputStream.close();
 
         return byteArrayOutputStream.toByteArray();
+    }
+
+    @Override
+    public void stop() {
+        autosaveManager.stopAutosave();  // Stop the autosave when the app is closed
     }
 
     //good ol main, not much to see here
