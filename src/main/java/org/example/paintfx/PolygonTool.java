@@ -8,12 +8,26 @@ import javafx.scene.paint.Color;
 
 import java.util.Optional;
 
+
+/**
+ * The class Polygon tool extends shape tool
+ */
 public class PolygonTool extends ShapeTool {
 
     private int numberOfSides = 5; // Default to 5 sides
     private boolean isSidesPrompted = false; // Track if the sides have been prompted
 
+
+    /**
+     *
+     * Polygon tool
+     *
+     * @param gc  the gc.
+     * @param toggleButton  the toggle button.
+     * @return public
+     */
     public PolygonTool(GraphicsContext gc, ToggleButton toggleButton) {
+
         super(gc, toggleButton);
 
         // Listen for changes to the toggle button
@@ -30,7 +44,18 @@ public class PolygonTool extends ShapeTool {
     }
 
     @Override
+
+/**
+ *
+ * On mouse dragged
+ *
+ * @param event  the event.
+ * @param fillColor  the fill color.
+ * @param borderColor  the border color.
+ * @param borderWidth  the border width.
+ */
     public void onMouseDragged(MouseEvent event, Color fillColor, Color borderColor, double borderWidth) {
+
         if (!this.toggleButton.isSelected()) {
             return;
         }
@@ -44,7 +69,14 @@ public class PolygonTool extends ShapeTool {
         drawPolygon(gc, centerX, centerY, radius, fillColor, borderColor, borderWidth);
     }
 
+
+    /**
+     *
+     * Prompt for number of sides
+     *
+     */
     private void promptForNumberOfSides() {
+
         TextInputDialog dialog = new TextInputDialog(String.valueOf(numberOfSides)); // Prepopulate with current value
         dialog.setTitle("Polygon Sides");
         dialog.setHeaderText("Set Polygon Sides");
@@ -63,8 +95,23 @@ public class PolygonTool extends ShapeTool {
         });
     }
 
+
+
+    /**
+     *
+     * Draw polygon
+     *
+     * @param gc  the gc.
+     * @param centerX  the center X.
+     * @param centerY  the center Y.
+     * @param radius  the radius.
+     * @param fillColor  the fill color.
+     * @param borderColor  the border color.
+     * @param borderWidth  the border width.
+     */
     private void drawPolygon(GraphicsContext gc, double centerX, double centerY, double radius,
                              Color fillColor, Color borderColor, double borderWidth) {
+
         double[] xPoints = new double[numberOfSides];
         double[] yPoints = new double[numberOfSides];
 

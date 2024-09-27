@@ -6,7 +6,9 @@
 package org.example.paintfx;
 
 
+import javafx.event.EventHandler;
 import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.control.ToolBar;
 import javafx.application.Application;
 import javafx.beans.property.ObjectProperty;
@@ -36,8 +38,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Optional;
-
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.image.PixelFormat;
 import javafx.scene.layout.StackPane;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.util.concurrent.Executors;
+import java.util.zip.DeflaterOutputStream;
+import com.sun.net.httpserver.HttpServer;
+
 
 public class PaintApp extends Application {
 
@@ -77,13 +89,27 @@ public class PaintApp extends Application {
     UndoRedo undoRedo = new UndoRedo(canvas, gc);
 
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) throws IOException {
         tabPane = new TabPane();
-
+        ScrollPane scrollPane = new ScrollPane(tabPane);
         // Add an initial tab on startup
-        addNewTab();
-        addNewTab();
+        addNewTab();  // This creates the first tab and sets up the canvas and GraphicsContext
 
+
+        // Apply handlers to the initial tab's canvas
+        Tab firstTab = tabPane.getTabs().get(0);  // Get the first tab
+        TabContent firstTabContent = (TabContent) firstTab.getUserData();
+        this.canvas = firstTabContent.getCanvas();   // Set the active canvas
+        this.gc = firstTabContent.getGraphicsContext();  // Set the active GraphicsContext
+
+        // Add the "+" tab for adding new tabs
+        Tab plusTab = new Tab("+");
+        plusTab.setClosable(false);  // Disable closing for the "+" tab
+        tabPane.getTabs().add(plusTab);  // Add the "+" tab as the last tab
+
+
+
+        tabPane.setSide(Side.TOP);
         ////////////////////////////////////////////////////////////////////////
         //add blank image for default imageview
         canvas.setWidth(initialWidth);
@@ -113,7 +139,6 @@ public class PaintApp extends Application {
         ToggleButton starButton = new ToggleButton("Star");
         ToggleButton polygonButton = new ToggleButton("Polygon");
         ToggleButton moveSelectionButton = new ToggleButton("Move Selection");
-        ToggleButton copyPasteButton = new ToggleButton("Copy/Paste");
         Button clearButton = new Button("Clear Canvas");
         ToggleButton textButton = new ToggleButton("Add Text");
         ToggleButton varStarButton = new ToggleButton("Variable Star");
@@ -142,7 +167,7 @@ public class PaintApp extends Application {
         clearButton.setOnAction(e->clearCanvas());
         textButton.setOnAction(e-> currentTool = textTool);
         varStarButton.setOnAction(e -> currentTool = varStarTool);
-
+        currentTool = new RectangleTool(gc, rectButton);
 
         // Undo and Redo buttons
         Button undoButton = new Button("Undo");
@@ -161,7 +186,35 @@ public class PaintApp extends Application {
             moveSelectionTool.pasteSelection(50, 50); // Adjust as needed
         });
 
+        // Handle tab switching, including when the "+" tab is clicked
+        tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab == plusTab) {
+                // If the "+" tab is selected, create a new tab and insert it before the "+" tab
+                addNewTab();
+                tabPane.getSelectionModel().select(tabPane.getTabs().size() - 1);  // Select the newly created tab (which is now second-to-last)
+            } else if (newTab != null) {
+                // Otherwise, handle switching to the selected tab
+                TabContent selectedContent = (TabContent) newTab.getUserData();
+                this.canvas = selectedContent.getCanvas();
+                this.gc = selectedContent.getGraphicsContext();
 
+                // Apply drawing handlers to the new active canvas
+                currentTool.updateGraphicsContext(gc);
+                circleTool.updateGraphicsContext(gc);
+                ellipseTool.updateGraphicsContext(gc);
+                squareTool.updateGraphicsContext(gc);
+                triangleTool.updateGraphicsContext(gc);
+                starTool.updateGraphicsContext(gc);
+                polygonTool.updateGraphicsContext(gc);
+                moveSelectionTool.updateGraphicsContext(gc);
+                textTool.updateGraphicsContext(gc);
+                varStarTool.updateGraphicsContext(gc);
+
+                if(currentTool.toggleButton.isSelected()){
+                    currentTool.applyEventHandlers();
+                }
+            }
+        });
 
 
         //adds menu dropdowns to menubar, see functions themselves for more details
@@ -206,7 +259,7 @@ public class PaintApp extends Application {
         gridPane.add(menuBar,0,0);
         gridPane.add(toolBar1, 0 ,1);
         gridPane.add(toolBar2, 0 ,2);
-        gridPane.add(tabPane,0, 3);
+        gridPane.add(scrollPane,0, 3);
 
 
         // Scene setup
@@ -255,7 +308,16 @@ public class PaintApp extends Application {
             handleWindowClose(primaryStage);
         });
 
+        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
 
+        // Use the CanvasHttpHandler to serve the live canvas image
+        server.createContext("/canvas", new WebServer(canvas));
+
+        // Use a thread pool executor for handling requests concurrently
+        server.setExecutor(Executors.newFixedThreadPool(4));
+        server.start();
+
+        System.out.println("Web server started at http://localhost:8080/canvas");
     }
 
 
@@ -324,6 +386,19 @@ public class PaintApp extends Application {
             File file = fileChooser.showSaveDialog(stage);
 
             if (file != null) {
+                // Check if we're changing formats and if there could be data loss
+                String originalFormat = getFileExtension(currentFile.getName());
+                String newFormat = getFileExtension(file.getName());
+
+                if (isLossyFormatChange(originalFormat, newFormat)) {
+                    boolean continueSave = showWarningPopup("Warning: Saving this image in the " + newFormat.toUpperCase() +
+                            " format may cause loss of transparency or other data.");
+
+                    if (!continueSave) {
+                        return;  // User canceled the save operation
+                    }
+                }
+
                 try {
                     saveImageToFile(file);
                     currentFile = file;  // Update currentFile to the new file path
@@ -336,7 +411,25 @@ public class PaintApp extends Application {
         }
     }
 
+    // Check if there's a potential data loss when switching formats
+    private boolean isLossyFormatChange(String originalFormat, String newFormat) {
+        // Example: Converting from PNG to JPG can cause transparency loss
+        if (("png".equals(originalFormat) && ("jpg".equals(newFormat) || "bmp".equals(newFormat)))) {
+            return true;
+        }
+        // Add other conditions for potential data loss as needed
+        return false;
+    }
 
+    // Show a warning popup and return true if the user wants to continue
+    private boolean showWarningPopup(String message) {
+        Alert alert = new Alert(Alert.AlertType.WARNING, message, ButtonType.OK, ButtonType.CANCEL);
+        alert.setTitle("Image Format Warning");
+        alert.setHeaderText(null);
+
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
 
     //saves image to specified file path
     private void saveImageToFile(File file) throws IOException {
@@ -563,73 +656,114 @@ public class PaintApp extends Application {
         aboutStage.show();
     }
 
-    //draw button
-    private ToggleButton createDrawButton(){
-        //toggle button for drawing a line
+    private ToggleButton createDrawButton() {
+        // Toggle button for drawing a line
         ToggleButton drawToggle = new ToggleButton("Draw Line");
-        drawToggle.setOnAction(event -> drawingEnabled = drawToggle.isSelected());
 
-        // Add mouse event handlers to the canvas
-        canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
+        // Add action listener for the toggle button to enable/disable drawing
+        drawToggle.setOnAction(event -> {
+            drawingEnabled = drawToggle.isSelected();
             if (drawingEnabled) {
-                gc.setLineWidth(lineWidth);
-                gc.beginPath();
-                gc.moveTo(event.getX(), event.getY());
-                gc.stroke();
-                gc.setStroke(currentColor.getValue());
+                if (canvas == null || gc == null) {
+                    return;  // No active canvas
+                }
+                // Add mouse event handlers to the active canvas
+                canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, drawMousePressedHandler);
+                canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, drawMouseDraggedHandler);
+                canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, drawMouseReleasedHandler);
+            } else {
+                if (canvas == null) {
+                    return;  // No active canvas
+                }
+
+                // Remove the drawing event handlers
+                canvas.removeEventHandler(MouseEvent.MOUSE_PRESSED, drawMousePressedHandler);
+                canvas.removeEventHandler(MouseEvent.MOUSE_DRAGGED, drawMouseDraggedHandler);
+                canvas.removeEventHandler(MouseEvent.MOUSE_RELEASED, drawMouseReleasedHandler);
             }
         });
-
-        canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, event -> {
-            if (drawingEnabled) {
-                gc.lineTo(event.getX(), event.getY());
-                gc.stroke();
-                gc.setStroke(currentColor.getValue());
-            }
-        });
-
-        canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
-            if (drawingEnabled) {
-                gc.closePath(); // Optional: closes the path if needed
-            }
-        });
-
 
         return drawToggle;
     }
+
+    // Handlers for drawn mouse events
+    private final EventHandler<MouseEvent> drawMousePressedHandler = event -> {
+        if (drawingEnabled) {
+            gc.setLineWidth(lineWidth);
+            gc.beginPath();
+            gc.moveTo(event.getX(), event.getY());
+            gc.stroke();
+            gc.setStroke(currentColor.getValue());
+        }
+    };
+
+    private final EventHandler<MouseEvent> drawMouseDraggedHandler = event -> {
+        if (drawingEnabled) {
+            gc.lineTo(event.getX(), event.getY());
+            gc.stroke();
+            gc.setStroke(currentColor.getValue());
+        }
+    };
+
+    private final EventHandler<MouseEvent> drawMouseReleasedHandler = event -> {
+        if (drawingEnabled) {
+            gc.closePath();  // Optional: closes the path if needed
+        }
+    };
 
     private ToggleButton createEraser(){
         //toggle button for drawing a line
         ToggleButton eraser = new ToggleButton("Eraser");
         eraser.setOnAction(event -> eraserEnabled = eraser.isSelected());
 
-        // Add mouse event handlers to the canvas
-        canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
+        // Add action listener for the toggle button to enable/disable drawing
+        eraser.setOnAction(event -> {
+            eraserEnabled = eraser.isSelected();
             if (eraserEnabled) {
-                gc.setLineWidth(eraserWidth);
-                gc.beginPath();
-                gc.moveTo(event.getX(), event.getY());
-                gc.stroke();
-                gc.setStroke(Color.WHITE);
-            }
-        });
-
-        canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, event -> {
-            if (eraserEnabled) {
-                gc.lineTo(event.getX(), event.getY());
-                gc.stroke();
-                gc.setStroke(Color.WHITE);
-            }
-        });
-
-        canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
-            if (eraserEnabled) {
-                gc.closePath(); // Optional: closes the path if needed
+                if (canvas == null || gc == null) {
+                    return;  // No active canvas
+                }
+                // Add mouse event handlers to the active canvas
+                canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, eraserMousePressedHandler);
+                canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, eraserMouseDraggedHandler);
+                canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, eraserMouseReleasedHandler);
+            } else {
+                if (canvas == null) {
+                    return;  // No active canvas
+                }
+                // Remove the drawing event handlers
+                canvas.removeEventHandler(MouseEvent.MOUSE_PRESSED, eraserMousePressedHandler);
+                canvas.removeEventHandler(MouseEvent.MOUSE_DRAGGED, eraserMouseDraggedHandler);
+                canvas.removeEventHandler(MouseEvent.MOUSE_RELEASED, eraserMouseReleasedHandler);
             }
         });
 
         return eraser;
     }
+
+    //handlers for eraser
+    private final EventHandler<MouseEvent> eraserMousePressedHandler = event -> {
+        if (eraserEnabled) {
+            gc.setLineWidth(eraserWidth);
+            gc.beginPath();
+            gc.moveTo(event.getX(), event.getY());
+            gc.stroke();
+            gc.setStroke(Color.WHITE);
+        }
+    };
+    private final EventHandler<MouseEvent> eraserMouseDraggedHandler = event -> {
+        if (eraserEnabled) {
+            gc.lineTo(event.getX(), event.getY());
+            gc.stroke();
+            gc.setStroke(Color.WHITE);
+        }
+    };
+
+    private final EventHandler<MouseEvent> eraserMouseReleasedHandler = event -> {
+        if (eraserEnabled) {
+            gc.closePath(); // Optional: closes the path if needed
+        }
+    };
 
     private ToggleButton createStraightLineButton() {
         ToggleButton straightLine = new ToggleButton("Draw straight line");
@@ -645,7 +779,6 @@ public class PaintApp extends Application {
             // Set the starting point for the line
             startX = event.getX();
             startY = event.getY();
-
             // Take a snapshot of the current canvas content
             canvas.snapshot(null, canvasSnapshot);
         });
@@ -826,7 +959,7 @@ public class PaintApp extends Application {
     // Add a method to create a new tab with its own canvas
     private void addNewTab() {
         // Create a new tab
-        Tab tab = new Tab("Canvas " + (tabPane.getTabs().size() + 1));
+        Tab tab = new Tab("Canvas " + (tabPane.getTabs().size()));
         tab.setClosable(true);
 
         // Create a StackPane to hold the Canvas
@@ -848,38 +981,65 @@ public class PaintApp extends Application {
         // Set the content of the tab to the StackPane
         tab.setContent(localStackPane);
 
+        // Store relevant data for the tab (canvas, gc, undoRedo) using the tab's userData property
+        TabContent tabContent = new TabContent(localCanvas, localGc, localStackPane, localUndoRedo);
+        tab.setUserData(tabContent);
+
+        // Setup event handlers for the new canvas
+        setupCanvasEventHandlers(localCanvas, localUndoRedo);
+
         // Add the new tab to the TabPane
         tabPane.getTabs().add(tab);
 
         // Select the newly added tab
         tabPane.getSelectionModel().select(tab);
 
-        // Set the current canvas, gc, and stackPane for drawing on this tab
-        this.canvas = localCanvas;
-        this.gc = localGc;
-        this.stackPane = localStackPane;
-        this.undoRedo = localUndoRedo;
-
-        // Setup event handlers for the new canvas
-        setupCanvasEventHandlers(localCanvas, localUndoRedo);
-
         // Update the current tool and canvas when switching between tabs
         tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab != null) {
-                StackPane selectedStackPane = (StackPane) newTab.getContent();
-                Canvas selectedCanvas = (Canvas) selectedStackPane.getChildren().get(0);
-                GraphicsContext selectedGc = selectedCanvas.getGraphicsContext2D();
-                this.canvas = selectedCanvas;
-                this.gc = selectedGc;
-                this.stackPane = selectedStackPane;
-                this.undoRedo = new UndoRedo(selectedCanvas, selectedGc);  // Update undoRedo stack for the current canvas
+                TabContent selectedContent = (TabContent) newTab.getUserData();
+                this.canvas = selectedContent.getCanvas();
+                this.gc = selectedContent.getGraphicsContext();
+                this.stackPane = selectedContent.getStackPane();
+                this.undoRedo = selectedContent.getUndoRedo(); // Update undoRedo for the selected tab
             }
         });
     }
 
-    // Setup event handlers for the given canvas, graphics context, and undoRedo stack
+    // Helper class to store the tab's content (Canvas, GraphicsContext, StackPane, and UndoRedo)
+    class TabContent {
+        private final Canvas canvas;
+        private final GraphicsContext graphicsContext;
+        private final StackPane stackPane;
+        private final UndoRedo undoRedo;
+
+        public TabContent(Canvas canvas, GraphicsContext graphicsContext, StackPane stackPane, UndoRedo undoRedo) {
+            this.canvas = canvas;
+            this.graphicsContext = graphicsContext;
+            this.stackPane = stackPane;
+            this.undoRedo = undoRedo;
+        }
+
+        public Canvas getCanvas() {
+            return canvas;
+        }
+
+        public GraphicsContext getGraphicsContext() {
+            return graphicsContext;
+        }
+
+        public StackPane getStackPane() {
+            return stackPane;
+        }
+
+        public UndoRedo getUndoRedo() {
+            return undoRedo;
+        }
+
+    }
+
+    // Set up event handlers for the given canvas and undoRedo stack
     private void setupCanvasEventHandlers(Canvas canvas, UndoRedo undoRedo) {
-        // Handle mouse press for drawing and pushing to undo stack
         canvas.setOnMousePressed(event -> {
             if (currentTool != null) {
                 currentTool.onMousePressed(event);
@@ -887,19 +1047,71 @@ public class PaintApp extends Application {
             }
         });
 
-        // Handle mouse drag for drawing
         canvas.setOnMouseDragged(event -> {
             if (currentTool != null) {
                 currentTool.onMouseDragged(event, fillColor.getValue(), borderColor.getValue(), borderWidth);
             }
         });
 
-        // Handle mouse release to finalize drawing
         canvas.setOnMouseReleased(event -> {
             if (currentTool != null) {
                 currentTool.onMouseReleased(event, fillColor.getValue(), borderColor.getValue(), borderWidth);
             }
         });
+    }
+    // Method to start the HTTP server
+    private void startHttpServer() throws IOException {
+        // Create an HTTP server listening on port 8080
+        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+
+        // Create a context to serve the canvas image
+        server.createContext("/canvas", exchange -> {
+            // Take a snapshot of the canvas
+            WritableImage image = new WritableImage((int) canvas.getWidth(), (int) canvas.getHeight());
+            canvas.snapshot(null, image);
+
+            // Convert the snapshot to a byte array (PNG format)
+            byte[] imageBytes = encodeImageToPNG(image);
+
+            // Send HTTP response headers
+            exchange.getResponseHeaders().set("Content-Type", "image/png");
+            exchange.sendResponseHeaders(200, imageBytes.length);
+
+            // Write the image to the response
+            OutputStream outputStream = exchange.getResponseBody();
+            outputStream.write(imageBytes);
+            outputStream.close();
+        });
+
+        // Set an executor and start the server
+        server.setExecutor(Executors.newFixedThreadPool(4));  // For concurrency, use a thread pool
+        server.start();
+
+        System.out.println("HTTP server started at http://localhost:8080/canvas");
+    }
+
+    // Method to encode the WritableImage to PNG format without Swing
+    private byte[] encodeImageToPNG(WritableImage image) throws IOException {
+        PixelReader pixelReader = image.getPixelReader();
+        int width = (int) image.getWidth();
+        int height = (int) image.getHeight();
+
+        // Use ByteArrayOutputStream to store the bytes
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+        // Use DeflaterOutputStream to simulate PNG compression (dummy implementation for illustration)
+        DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(byteArrayOutputStream);
+
+        // Write the PNG header (dummy)
+        deflaterOutputStream.write(new byte[]{(byte) 137, 'P', 'N', 'G', (byte) 13, (byte) 10, (byte) 26, (byte) 10});
+
+        ByteBuffer buffer = ByteBuffer.allocate(width * height * 4);
+        pixelReader.getPixels(0, 0, width, height, PixelFormat.getByteBgraInstance(), buffer.array(), 0, width * 4);
+
+        deflaterOutputStream.write(buffer.array());
+        deflaterOutputStream.close();
+
+        return byteArrayOutputStream.toByteArray();
     }
 
     //good ol main, not much to see here
