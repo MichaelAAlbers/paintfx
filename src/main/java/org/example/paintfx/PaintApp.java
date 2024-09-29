@@ -40,14 +40,9 @@ import java.io.IOException;
 import java.util.Optional;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.image.PixelFormat;
 import javafx.scene.layout.StackPane;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.concurrent.Executors;
-import java.util.zip.DeflaterOutputStream;
 import com.sun.net.httpserver.HttpServer;
 
 
@@ -408,7 +403,7 @@ public class PaintApp extends Application {
             File file = fileChooser.showSaveDialog(stage);
 
             if (file != null) {
-                // Check if we're changing formats and if there could be data loss
+                // Check for changing formats and if there could be data loss
                 String originalFormat = getFileExtension(currentFile.getName());
                 String newFormat = getFileExtension(file.getName());
 
@@ -1080,60 +1075,6 @@ public class PaintApp extends Application {
                 currentTool.onMouseReleased(event, fillColor.getValue(), borderColor.getValue(), borderWidth);
             }
         });
-    }
-    // Method to start the HTTP server
-    private void startHttpServer() throws IOException {
-        // Create an HTTP server listening on port 8080
-        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
-
-        // Create a context to serve the canvas image
-        server.createContext("/canvas", exchange -> {
-            // Take a snapshot of the canvas
-            WritableImage image = new WritableImage((int) canvas.getWidth(), (int) canvas.getHeight());
-            canvas.snapshot(null, image);
-
-            // Convert the snapshot to a byte array (PNG format)
-            byte[] imageBytes = encodeImageToPNG(image);
-
-            // Send HTTP response headers
-            exchange.getResponseHeaders().set("Content-Type", "image/png");
-            exchange.sendResponseHeaders(200, imageBytes.length);
-
-            // Write the image to the response
-            OutputStream outputStream = exchange.getResponseBody();
-            outputStream.write(imageBytes);
-            outputStream.close();
-        });
-
-        // Set an executor and start the server
-        server.setExecutor(Executors.newFixedThreadPool(4));  // For concurrency, use a thread pool
-        server.start();
-
-        System.out.println("HTTP server started at http://localhost:8080/canvas");
-    }
-
-    // Method to encode the WritableImage to PNG format without Swing
-    private byte[] encodeImageToPNG(WritableImage image) throws IOException {
-        PixelReader pixelReader = image.getPixelReader();
-        int width = (int) image.getWidth();
-        int height = (int) image.getHeight();
-
-        // Use ByteArrayOutputStream to store the bytes
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-
-        // Use DeflaterOutputStream to simulate PNG compression (dummy implementation for illustration)
-        DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(byteArrayOutputStream);
-
-        // Write the PNG header (dummy)
-        deflaterOutputStream.write(new byte[]{(byte) 137, 'P', 'N', 'G', (byte) 13, (byte) 10, (byte) 26, (byte) 10});
-
-        ByteBuffer buffer = ByteBuffer.allocate(width * height * 4);
-        pixelReader.getPixels(0, 0, width, height, PixelFormat.getByteBgraInstance(), buffer.array(), 0, width * 4);
-
-        deflaterOutputStream.write(buffer.array());
-        deflaterOutputStream.close();
-
-        return byteArrayOutputStream.toByteArray();
     }
 
     @Override

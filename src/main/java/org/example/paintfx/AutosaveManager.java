@@ -120,7 +120,6 @@ public class AutosaveManager {
                 bufferedImage.setRGB(x, y, argb);
             }
         }
-
         return bufferedImage;
     }
 }
