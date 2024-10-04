@@ -57,6 +57,12 @@ public abstract class ShapeTool {
     /** The toggle button that controls whether the tool is active or inactive. */
     public final ToggleButton toggleButton;
 
+    protected Logger logger;
+
+    public String name = "Generic shape";
+    private boolean isLogged = false;  // Prevents multiple logging
+    private boolean isDrawing = false;  // Tracks if the shape is actually being drawn
+
 
     /**
      * Constructs a {@code ShapeTool} with the specified {@code GraphicsContext} and {@code ToggleButton}.
@@ -65,8 +71,9 @@ public abstract class ShapeTool {
      * @param gc           The {@code GraphicsContext} used for drawing on the canvas.
      * @param toggleButton The {@code ToggleButton} that activates or deactivates the tool.
      */
-    public ShapeTool(GraphicsContext gc, ToggleButton toggleButton) {
+    public ShapeTool(GraphicsContext gc, Logger logger, ToggleButton toggleButton) {
         this.gc = gc;
+        this.logger = logger;
         this.toggleButton = toggleButton;
         setupEventHandlers();
     }
@@ -128,6 +135,7 @@ public abstract class ShapeTool {
      * @param event The {@code MouseEvent} containing information about the drag.
      */
     private void onMouseDraggedWrapper(MouseEvent event) {
+        isDrawing = true;  // Mark that drawing is happening
         onMouseDragged(event, fillColor, borderColor, borderWidth);
     }
 
@@ -138,6 +146,13 @@ public abstract class ShapeTool {
      */
     private void onMouseReleasedWrapper(MouseEvent event) {
         onMouseReleased(event, fillColor, borderColor, borderWidth);
+
+        // Ensure logging only happens if a shape was drawn
+        if (isDrawing && !isLogged) {
+            logShapeDrawn();
+            isLogged = true;  // Mark as logged
+        }
+        isDrawing = false;  // Reset drawing state
     }
 
     /**
@@ -154,6 +169,8 @@ public abstract class ShapeTool {
         startY = event.getY();
         canvasSnapshot = new WritableImage((int) gc.getCanvas().getWidth(), (int) gc.getCanvas().getHeight());
         gc.getCanvas().snapshot(null, canvasSnapshot);
+        isLogged = false;  // Reset logging state for the new shape
+        isDrawing = false;  // Reset drawing state
     }
 
     /**
@@ -182,4 +199,24 @@ public abstract class ShapeTool {
         }
         onMouseDragged(event, fillColor, borderColor, borderWidth);  // Finalize drawing
     }
+
+    private void logShapeDrawn() {
+        // Retrieve the name of the current tab (you may already have a way to get the tab name)
+        String tabName = getCurrentTabName();  // Implement this method to get the active tab's name
+        name = getShapeName();
+        // Log the event using the logger
+        logger.logEvent(tabName, name + " drawn");  // 'name' is the shape name, customized per shape tool
+    }
+
+    /**
+     * Each subclass can provide the name of the shape that was drawn.
+     *
+     * @return The name of the shape.
+     */
+    protected abstract String getShapeName();
+    //  retrieve the name of the active tab
+    private String getCurrentTabName() {
+        return "Tab 0";  // Placeholder
+    }
+
 }

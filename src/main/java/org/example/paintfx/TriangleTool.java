@@ -5,10 +5,14 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 
+
+
 public class TriangleTool extends ShapeTool {
 
-    public TriangleTool(GraphicsContext gc, ToggleButton toggleButton) {
-        super(gc, toggleButton);
+
+    public TriangleTool(GraphicsContext gc, Logger logger, ToggleButton toggleButton) {
+
+        super(gc, logger, toggleButton);
     }
 
     @Override
@@ -34,4 +38,10 @@ public class TriangleTool extends ShapeTool {
         gc.setLineWidth(borderWidth);
         gc.strokePolygon(xPoints, yPoints, 3);  // Outline the triangle
     }
+
+    @Override
+    protected String getShapeName() {
+        return "Triangle";
+    }
+
 }

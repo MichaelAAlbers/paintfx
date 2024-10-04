@@ -25,15 +25,19 @@ public class AutosaveManager {
 
     private final Canvas canvas;
     private final Label countdownLabel;
-    private final CheckBox displayCountdownCheckBox;
+    private final CheckBox displayCountdownCheckBox, enableNotificationsCheckBox;
     private Timer autosaveTimer;
     private int autosaveIntervalSeconds = 30;  // Default autosave interval
     private int countdown;
 
-    public AutosaveManager(Canvas canvas, Label countdownLabel, CheckBox displayCountdownCheckBox) {
+    private final AutosaveNotifier notifier;
+
+    public AutosaveManager(Canvas canvas, Label countdownLabel, CheckBox displayCountdownCheckBox, CheckBox enableNotificationsCheckBox) {
         this.canvas = canvas;
         this.countdownLabel = countdownLabel;
         this.displayCountdownCheckBox = displayCountdownCheckBox;
+        this.enableNotificationsCheckBox = enableNotificationsCheckBox;
+        this.notifier = new AutosaveNotifier();
     }
 
     public void startAutosave() {
@@ -75,6 +79,12 @@ public class AutosaveManager {
         try {
             saveImageToFile(autosaveFile);
             System.out.println("Canvas autosaved to: " + autosaveFile.getAbsolutePath());
+
+
+            if (enableNotificationsCheckBox.isSelected()) {
+                notifier.showNotification("Autosave", "Your work has been autosaved.");
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
         }

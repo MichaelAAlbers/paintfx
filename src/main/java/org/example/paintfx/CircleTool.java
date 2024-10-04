@@ -7,8 +7,8 @@ import javafx.scene.paint.Color;
 
 public class CircleTool extends ShapeTool {
 
-    public CircleTool(GraphicsContext gc, ToggleButton toggleButton) {
-        super(gc, toggleButton);
+    public CircleTool(GraphicsContext gc, Logger logger, ToggleButton toggleButton) {
+        super(gc, logger, toggleButton);
     }
 
     @Override
@@ -27,5 +27,10 @@ public class CircleTool extends ShapeTool {
         gc.setStroke(borderColor);
         gc.setLineWidth(borderWidth);
         gc.strokeOval(x, y, radius * 2, radius * 2);
+    }
+
+    @Override
+    protected String getShapeName() {
+        return "Circle";
     }
 }

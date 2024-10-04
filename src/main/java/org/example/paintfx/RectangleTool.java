@@ -8,8 +8,8 @@ import javafx.scene.paint.Color;
 
 public class RectangleTool extends ShapeTool {
 
-    public RectangleTool(GraphicsContext gc, ToggleButton toggleButton) {
-        super(gc, toggleButton);
+    public RectangleTool(GraphicsContext gc, Logger logger, ToggleButton toggleButton) {
+        super(gc, logger, toggleButton);
     }
 
     @Override
@@ -28,5 +28,9 @@ public class RectangleTool extends ShapeTool {
         gc.setStroke(borderColor);
         gc.setLineWidth(borderWidth);
         gc.strokeRect(x, y, width, height);
+    }
+    @Override
+    protected String getShapeName() {
+        return "Rectangle";
     }
 }

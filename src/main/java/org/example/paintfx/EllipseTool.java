@@ -7,8 +7,8 @@ import javafx.scene.paint.Color;
 
 public class EllipseTool extends ShapeTool {
 
-    public EllipseTool(GraphicsContext gc, ToggleButton toggleButton) {
-        super(gc, toggleButton);
+    public EllipseTool(GraphicsContext gc,  Logger logger, ToggleButton toggleButton) {
+        super(gc, logger, toggleButton);
     }
 
     @Override
@@ -28,5 +28,9 @@ public class EllipseTool extends ShapeTool {
         gc.setStroke(borderColor);
         gc.setLineWidth(borderWidth);
         gc.strokeOval(x, y, width, height);
+    }
+    @Override
+    protected String getShapeName() {
+        return "Ellipse";
     }
 }

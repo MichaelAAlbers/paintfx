@@ -7,8 +7,9 @@ import javafx.scene.paint.Color;
 
 public class StarTool extends ShapeTool {
 
-    public StarTool(GraphicsContext gc, ToggleButton toggleButton) {
-        super(gc, toggleButton);
+    public StarTool(GraphicsContext gc, Logger logger, ToggleButton toggleButton) {
+
+        super(gc, logger, toggleButton);
     }
 
     public void onMouseDragged(MouseEvent event, Color fillColor, Color borderColor, double borderWidth) {
@@ -51,5 +52,9 @@ public class StarTool extends ShapeTool {
         gc.setStroke(borderColor);
         gc.setLineWidth(borderWidth);
         gc.strokePolygon(xPoints, yPoints, 10);
+    }
+    @Override
+    protected String getShapeName() {
+        return "Star";
     }
 }

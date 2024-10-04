@@ -14,8 +14,8 @@ public class TextTool extends ShapeTool {
     private String enteredText = null;
     private double fontSize = 50;  // Default font size
 
-    public TextTool(GraphicsContext gc, ToggleButton toggleButton) {
-        super(gc, toggleButton);
+    public TextTool(GraphicsContext gc, Logger logger, ToggleButton toggleButton) {
+        super(gc, logger, toggleButton);
         setupToggleListener();
     }
 
@@ -74,5 +74,9 @@ public class TextTool extends ShapeTool {
     @Override
     public void onMouseReleased(MouseEvent event, Color fillColor, Color borderColor, double borderWidth) {
         // No specific release behavior needed for the TextTool
+    }
+    @Override
+    protected String getShapeName() {
+        return "Text";
     }
 }

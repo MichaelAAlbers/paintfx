@@ -22,10 +22,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Modality;
@@ -51,6 +48,9 @@ public class PaintApp extends Application {
     private int initialWidth = 800;
     private int initialHeight = 600;
     private Canvas canvas = new Canvas(initialWidth, initialHeight);                   //canvas that can be drawn on
+
+    public Canvas overlayCanvas = new Canvas( );
+    public GraphicsContext overlayGc = overlayCanvas.getGraphicsContext2D();
     private ShapeTool currentTool;
 
     private ObjectProperty<Color> currentColor = new SimpleObjectProperty<>(Color.BLACK);
@@ -85,10 +85,12 @@ public class PaintApp extends Application {
 
     private AutosaveManager autosaveManager;
     private Label countdownLabel;
-    private CheckBox displayCountdownCheckBox;
+    private CheckBox displayCountdownCheckBox, enableNotificationsCheckBox;
 
     @Override
     public void start(Stage primaryStage) throws IOException {
+        Logger logger = new Logger();
+
         tabPane = new TabPane();
         ScrollPane scrollPane = new ScrollPane(tabPane);
         // Add an initial tab on startup
@@ -100,6 +102,8 @@ public class PaintApp extends Application {
         TabContent firstTabContent = (TabContent) firstTab.getUserData();
         this.canvas = firstTabContent.getCanvas();   // Set the active canvas
         this.gc = firstTabContent.getGraphicsContext();  // Set the active GraphicsContext
+        this.overlayCanvas=firstTabContent.getOverlayCanvas();
+        this.overlayGc=firstTabContent.getOverlayGraphicsContext();
 
         // Add the "+" tab for adding new tabs
         Tab plusTab = new Tab("+");
@@ -129,30 +133,40 @@ public class PaintApp extends Application {
         // Ensure the StackPane aligns to the top-left corner
         stackPane.setAlignment(Pos.TOP_LEFT);
 
+        //custom icon button constructor class
+        IconButtonFactory iconButtonFactory = new IconButtonFactory();
 
-        ToggleButton rectButton = new ToggleButton("Rectangle");
-        ToggleButton circleButton = new ToggleButton("Circle");
-        ToggleButton ellipseButton = new ToggleButton("Ellipse");
-        ToggleButton squareButton = new ToggleButton("Square");
-        ToggleButton triangleButton = new ToggleButton("Triangle");
-        ToggleButton starButton = new ToggleButton("Star");
-        ToggleButton polygonButton = new ToggleButton("Polygon");
-        ToggleButton moveSelectionButton = new ToggleButton("Move Selection");
-        Button clearButton = new Button("Clear Canvas");
-        ToggleButton textButton = new ToggleButton("Add Text");
-        ToggleButton varStarButton = new ToggleButton("Variable Star");
+        //toggle buttons
+        ToggleButton rectButton = iconButtonFactory.createIconToggleButton("rectangle.png", "Rectangle");
+        ToggleButton circleButton = iconButtonFactory.createIconToggleButton("circle.png", "Circle");
+        ToggleButton ellipseButton = iconButtonFactory.createIconToggleButton("ellipse.png", "Ellipse");
+        ToggleButton squareButton = iconButtonFactory.createIconToggleButton("square.png", "Square");
+        ToggleButton triangleButton = iconButtonFactory.createIconToggleButton("triangle.png", "Triangle");
+        ToggleButton starButton = iconButtonFactory.createIconToggleButton("star.png", "Star");
+        ToggleButton polygonButton = iconButtonFactory.createIconToggleButton("polygon.png", "Polygon");
+        ToggleButton moveSelectionButton = iconButtonFactory.createIconToggleButton("selection.png", "Move Selection");
+        ToggleButton textButton = iconButtonFactory.createIconToggleButton("text.png", "Add Text");
+        ToggleButton varStarButton = iconButtonFactory.createIconToggleButton("varstar.png", "Variable Star");
+
+        // Create regular buttons with icons
+        Button clearButton = iconButtonFactory.createIconButton("eraser.png", "Clear Canvas");
+        Button clockWiseButton = iconButtonFactory.createIconButton("redo.png", "Rotate Clockwise");
+        Button counterClockWiseButton = iconButtonFactory.createIconButton("undo.png", "Rotate Counterclockwise");
+        Button mirrorHorizontalButton = iconButtonFactory.createIconButton("flip.png", "Mirror Horizontally");
+        Button mirrorVerticalButton = iconButtonFactory.createIconButton("vertical.png", "Mirror Vertically");
 
 
-        ShapeTool rectangleTool = new RectangleTool(gc, rectButton);
-        ShapeTool circleTool = new CircleTool(gc, circleButton);
-        ShapeTool ellipseTool = new EllipseTool(gc, ellipseButton);
-        ShapeTool squareTool = new SquareTool(gc, squareButton);
-        ShapeTool triangleTool = new TriangleTool(gc, triangleButton);
-        ShapeTool starTool = new StarTool(gc, starButton);
-        ShapeTool polygonTool = new PolygonTool(gc, polygonButton);
-        MoveSelectionTool moveSelectionTool = new MoveSelectionTool(gc, moveSelectionButton, this.stackPane);
-        TextTool textTool = new TextTool(gc, textButton);
-        VarStarTool varStarTool = new VarStarTool(gc, varStarButton);
+        ShapeTool rectangleTool = new RectangleTool(gc, logger, rectButton);
+        ShapeTool circleTool = new CircleTool(gc, logger, circleButton);
+        ShapeTool ellipseTool = new EllipseTool(gc, logger, ellipseButton);
+        ShapeTool squareTool = new SquareTool(gc, logger, squareButton);
+        ShapeTool triangleTool = new TriangleTool(gc, logger, triangleButton);
+        ShapeTool starTool = new StarTool(gc, logger, starButton);
+        ShapeTool polygonTool = new PolygonTool(gc, logger, polygonButton);
+        MoveSelectionTool moveSelectionTool = new MoveSelectionTool(gc, overlayGc, overlayCanvas, logger, moveSelectionButton);
+        TextTool textTool = new TextTool(gc, logger, textButton);
+        VarStarTool varStarTool = new VarStarTool(gc, logger, varStarButton);
+
 
         // Set up button actions to switch tools
         rectButton.setOnAction(e -> currentTool = rectangleTool);
@@ -166,7 +180,15 @@ public class PaintApp extends Application {
         clearButton.setOnAction(e->clearCanvas());
         textButton.setOnAction(e-> currentTool = textTool);
         varStarButton.setOnAction(e -> currentTool = varStarTool);
-        currentTool = new RectangleTool(gc, rectButton);
+
+
+        CanvasRotator rotator = new CanvasRotator();
+
+        clockWiseButton.setOnAction(e-> rotator.rotateRight(canvas));
+        counterClockWiseButton.setOnAction(e -> rotator.rotateLeft(canvas));
+        mirrorHorizontalButton.setOnAction(e -> rotator.mirrorHorizontally(canvas));
+        mirrorVerticalButton.setOnAction(e -> rotator.mirrorVertically(canvas));
+
 
         // Undo and Redo buttons
         Button undoButton = new Button("Undo");
@@ -177,13 +199,10 @@ public class PaintApp extends Application {
 
         //copy and paste buttons
         Button copyButton = new Button("Copy");
-        copyButton.setOnAction(e -> moveSelectionTool.copySelection());
 
         Button pasteButton = new Button("Paste");
-        pasteButton.setOnAction(e -> {
-            // You may want to specify where to paste; for simplicity, we use fixed coordinates
-            moveSelectionTool.pasteSelection(50, 50); // Adjust as needed
-        });
+
+
 
         // Handle tab switching, including when the "+" tab is clicked
         tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
@@ -192,10 +211,14 @@ public class PaintApp extends Application {
                 addNewTab();
                 tabPane.getSelectionModel().select(tabPane.getTabs().size() - 1);  // Select the newly created tab (which is now second-to-last)
             } else if (newTab != null) {
+                logger.logEvent("Tab " + tabPane.getSelectionModel().getSelectedIndex(), "Switched to Tab");
                 // Otherwise, handle switching to the selected tab
                 TabContent selectedContent = (TabContent) newTab.getUserData();
                 this.canvas = selectedContent.getCanvas();
                 this.gc = selectedContent.getGraphicsContext();
+                this.overlayCanvas = selectedContent.getOverlayCanvas();
+                this.overlayGc = selectedContent.getOverlayGraphicsContext();
+                this.canvas.requestFocus();
 
                 // Apply drawing handlers to the new active canvas
                 currentTool.updateGraphicsContext(gc);
@@ -209,6 +232,7 @@ public class PaintApp extends Application {
                 textTool.updateGraphicsContext(gc);
                 varStarTool.updateGraphicsContext(gc);
 
+                currentTool.removeEventHandlers();
                 if(currentTool.toggleButton.isSelected()){
                     currentTool.applyEventHandlers();
                 }
@@ -223,6 +247,7 @@ public class PaintApp extends Application {
 
         countdownLabel = new Label();
         displayCountdownCheckBox = new CheckBox("Show autosave countdown");
+        enableNotificationsCheckBox = new CheckBox("Enable autosave notifications");
 
         Button saveButton = new Button("Save Now");
         saveButton.setOnAction(e -> {
@@ -230,10 +255,14 @@ public class PaintApp extends Application {
             autosaveManager.resetTimer();  // Reset the timer after manual save
         });
 
-        VBox autoSaver = new VBox(10, countdownLabel, displayCountdownCheckBox, saveButton);
+        VBox autoSaver = new VBox(10, countdownLabel, displayCountdownCheckBox, enableNotificationsCheckBox, saveButton);
 
         //tool bar for drawing tools
         ToolBar toolBar1 = new ToolBar(
+            clockWiseButton,
+            counterClockWiseButton,
+            mirrorHorizontalButton,
+            mirrorVerticalButton,
             autoSaver,
             createDrawButton(),                 //draw toggle
             createLineColorPicker(),                         //color chooser
@@ -282,48 +311,49 @@ public class PaintApp extends Application {
 
 
         // Start autosave manager
-        autosaveManager = new AutosaveManager(canvas, countdownLabel, displayCountdownCheckBox);
+        autosaveManager = new AutosaveManager(canvas, countdownLabel, displayCountdownCheckBox, enableNotificationsCheckBox);
         autosaveManager.startAutosave();  // Start autosaving
 
 
-        //CTRL + S to save as
-        scene.getAccelerators().put(
-                new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN),
-                () -> saveImageAs(primaryStage) // The method you want to run when the shortcut is pressed
-        );
-
-        //CTRL + H to show "help"
-        scene.getAccelerators().put(
-                new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN),
-                this::showHelp
-        );
-
-        //CTRL + A to show "about"
-        scene.getAccelerators().put(
-                new KeyCodeCombination(KeyCode.A, KeyCombination.CONTROL_DOWN),
-                () -> showAbout(primaryStage)
-        );
-
-        //CTRL + Z to UNDO
-        scene.getAccelerators().put(
-                new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN),
-                undoRedo::undo
-        );
-
-        //CTRL + Y to REDO
-        scene.getAccelerators().put(
-                new KeyCodeCombination(KeyCode.Y, KeyCombination.CONTROL_DOWN),
-                undoRedo::redo
-        );
 
 
 
 
-        //window popup before closing
-        primaryStage.setOnCloseRequest(event -> {
-            event.consume(); // Consume the close event to prevent the window from closing immediately
-            handleWindowClose(primaryStage);
+        // Global event filter for key events
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            // CTRL + Z to UNDO
+            if (new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN).match(event)) {
+                undoRedo.undo();
+                event.consume();  // Consume the event so it's not processed further
+            }
+
+            // CTRL + Y to REDO
+            if (new KeyCodeCombination(KeyCode.Y, KeyCombination.CONTROL_DOWN).match(event)) {
+                undoRedo.redo();
+                event.consume();  // Consume the event so it's not processed further
+            }
+
+            // CTRL + S to SAVE
+            if (new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN).match(event)) {
+                saveImageAs(primaryStage);
+                event.consume();  // Consume the event so it's not processed further
+            }
+
+            //CTRL + S to save as
+            scene.getAccelerators().put(
+                    new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN),
+                    () -> saveImageAs(primaryStage) // The method you want to run when the shortcut is pressed
+            );
+
+            //f1 to show "help"
+            scene.getAccelerators().put(
+                    new KeyCodeCombination(KeyCode.F1, KeyCombination.CONTROL_DOWN),
+                    this::showHelp
+            );
+
         });
+
+
 
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
 
@@ -335,6 +365,16 @@ public class PaintApp extends Application {
         server.start();
 
         System.out.println("Web server started at http://localhost:8080/canvas");
+
+        //window popup before closing
+        primaryStage.setOnCloseRequest(event -> {
+            event.consume(); // Consume the close event to prevent the window from closing immediately
+            autosaveManager.stopAutosave();
+            server.stop(1);
+            logger.shutdown();
+            handleWindowClose(primaryStage);
+        });
+
     }
 
 
@@ -389,7 +429,7 @@ public class PaintApp extends Application {
     }
 
     //choose a filepath, name, and extension(can convert bmp/jpg/png interchangeably)
-    private void saveImageAs(Stage stage) {
+    void saveImageAs(Stage stage) {
         // Check if there is content on the canvas
         if (canvas != null) {
             FileChooser fileChooser = new FileChooser();
@@ -613,7 +653,6 @@ public class PaintApp extends Application {
                 canvas.setHeight(newHeight);
                 stackPane.setMaxWidth(newWidth);
                 stackPane.setMaxHeight(newHeight);
-                moveSelectionTool.updateCanvasSnapshot();
 
 
 
@@ -648,7 +687,7 @@ public class PaintApp extends Application {
     }
 
     //pop up window with some tips on how to use the software
-    private void showHelp() {
+    void showHelp() {
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle("Help");
         alert.setHeaderText(null);
@@ -658,7 +697,7 @@ public class PaintApp extends Application {
     }
 
     //pop up window with information about the softwar
-    private void showAbout(Stage primaryStage) {
+    void showAbout(Stage primaryStage) {
         Stage aboutStage = new Stage();
         aboutStage.setTitle("About");
 
@@ -979,7 +1018,7 @@ public class PaintApp extends Application {
         Tab tab = new Tab("Canvas " + (tabPane.getTabs().size()));
         tab.setClosable(true);
 
-        // Create a StackPane to hold the Canvas
+        // Create a StackPane to hold the Canvas and Overlay Canvas
         StackPane localStackPane = new StackPane();
         localStackPane.setAlignment(Pos.TOP_LEFT);
 
@@ -989,17 +1028,22 @@ public class PaintApp extends Application {
         localGc.setFill(Color.WHITE);
         localGc.fillRect(0, 0, localCanvas.getWidth(), localCanvas.getHeight());
 
+        // Create the overlay canvas for temporary visuals
+        Canvas localOverlayCanvas = new Canvas(initialWidth, initialHeight);
+        localOverlayCanvas.setMouseTransparent(true);  // Ensure it doesn't intercept mouse events
+        GraphicsContext localOverlayGc = localOverlayCanvas.getGraphicsContext2D();
+
+        // Add both canvases to the StackPane
+        localStackPane.getChildren().addAll(localCanvas, localOverlayCanvas);
+
         // Initialize UndoRedo for this canvas
         UndoRedo localUndoRedo = new UndoRedo(localCanvas, localGc);
-
-        // Add the canvas to the StackPane
-        localStackPane.getChildren().add(localCanvas);
 
         // Set the content of the tab to the StackPane
         tab.setContent(localStackPane);
 
-        // Store relevant data for the tab (canvas, gc, undoRedo) using the tab's userData property
-        TabContent tabContent = new TabContent(localCanvas, localGc, localStackPane, localUndoRedo);
+        // Store relevant data for the tab (canvas, gc, stackPane, overlayGc, undoRedo)
+        TabContent tabContent = new TabContent(localCanvas, localGc, localOverlayCanvas, localOverlayGc, localStackPane, localUndoRedo);
         tab.setUserData(tabContent);
 
         // Setup event handlers for the new canvas
@@ -1018,21 +1062,29 @@ public class PaintApp extends Application {
                 this.canvas = selectedContent.getCanvas();
                 this.gc = selectedContent.getGraphicsContext();
                 this.stackPane = selectedContent.getStackPane();
-                this.undoRedo = selectedContent.getUndoRedo(); // Update undoRedo for the selected tab
+                this.overlayGc = selectedContent.getOverlayGraphicsContext();
+                this.undoRedo = selectedContent.getUndoRedo();  // Update undoRedo for the selected tab
+
+                // Ensure overlay canvas is correctly synchronized with the current canvas
+                selectedContent.getOverlayCanvas().setWidth(this.canvas.getWidth());
+                selectedContent.getOverlayCanvas().setHeight(this.canvas.getHeight());
             }
         });
     }
-
-    // Helper class to store the tab's content (Canvas, GraphicsContext, StackPane, and UndoRedo)
+    // Helper class to store the tab's content (Canvas, GraphicsContext, StackPane, UndoRedo, and Overlay Canvas)
     class TabContent {
         private final Canvas canvas;
         private final GraphicsContext graphicsContext;
+        private final Canvas overlayCanvas;
+        private final GraphicsContext overlayGraphicsContext;
         private final StackPane stackPane;
         private final UndoRedo undoRedo;
 
-        public TabContent(Canvas canvas, GraphicsContext graphicsContext, StackPane stackPane, UndoRedo undoRedo) {
+        public TabContent(Canvas canvas, GraphicsContext graphicsContext, Canvas overlayCanvas, GraphicsContext overlayGraphicsContext, StackPane stackPane, UndoRedo undoRedo) {
             this.canvas = canvas;
             this.graphicsContext = graphicsContext;
+            this.overlayCanvas = overlayCanvas;
+            this.overlayGraphicsContext = overlayGraphicsContext;
             this.stackPane = stackPane;
             this.undoRedo = undoRedo;
         }
@@ -1045,6 +1097,14 @@ public class PaintApp extends Application {
             return graphicsContext;
         }
 
+        public Canvas getOverlayCanvas() {
+            return overlayCanvas;
+        }
+
+        public GraphicsContext getOverlayGraphicsContext() {
+            return overlayGraphicsContext;
+        }
+
         public StackPane getStackPane() {
             return stackPane;
         }
@@ -1052,7 +1112,6 @@ public class PaintApp extends Application {
         public UndoRedo getUndoRedo() {
             return undoRedo;
         }
-
     }
 
     // Set up event handlers for the given canvas and undoRedo stack
@@ -1076,12 +1135,6 @@ public class PaintApp extends Application {
             }
         });
     }
-
-    @Override
-    public void stop() {
-        autosaveManager.stopAutosave();  // Stop the autosave when the app is closed
-    }
-
     //good ol main, not much to see here
     public static void main(String[] args) {
         launch(args);

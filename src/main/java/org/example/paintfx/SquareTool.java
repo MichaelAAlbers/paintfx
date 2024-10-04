@@ -42,8 +42,9 @@ public class SquareTool extends ShapeTool {
      * @param toggleButton The {@code ToggleButton} controlling the activation of the tool.
      */
 
-    public SquareTool(GraphicsContext gc, ToggleButton toggleButton) {
-        super(gc, toggleButton);
+    public SquareTool(GraphicsContext gc, Logger logger, ToggleButton toggleButton) {
+
+        super(gc, logger, toggleButton);
     }
 
     /**
@@ -74,5 +75,10 @@ public class SquareTool extends ShapeTool {
         gc.setStroke(borderColor);
         gc.setLineWidth(borderWidth);
         gc.strokeRect(x, y, side, side);
+    }
+
+    @Override
+    protected String getShapeName() {
+        return "Sqaure";
     }
 }

@@ -17,22 +17,20 @@ public class MoveSelectionTool extends ShapeTool {
     private boolean isDragging = false;
     private double selectionX, selectionY, selectionWidth, selectionHeight;
     private double offsetX, offsetY;  // Track offset when dragging
+
     private Canvas overlayCanvas;  // The overlay canvas for visual feedback
     private GraphicsContext overlayGc;  // GraphicsContext for the overlay
 
-    public MoveSelectionTool(GraphicsContext gc, ToggleButton toggleButton, StackPane stackPane) {
-        super(gc, toggleButton);
-
-        overlayCanvas = new Canvas(gc.getCanvas().getWidth(), gc.getCanvas().getHeight());
-        overlayCanvas.setMouseTransparent(true);  // Ensure mouse events pass through
-        overlayGc = overlayCanvas.getGraphicsContext2D();
-        stackPane.getChildren().add(overlayCanvas);  // Add overlay to the StackPane
+    public MoveSelectionTool(GraphicsContext gc, GraphicsContext overlayGc, Canvas overlayCanvas, Logger logger, ToggleButton toggleButton) {
+        super(gc, logger, toggleButton);
+        this.overlayGc = overlayGc;
+        this.overlayCanvas = overlayCanvas;
     }
 
     @Override
     public void onMousePressed(MouseEvent event) {
         if (!toggleButton.isSelected()) {
-            return;  // Allow other tools to handle mouse events if the selection tool is not active
+            return;
         }
 
         if (selectedImage == null) {
@@ -55,24 +53,26 @@ public class MoveSelectionTool extends ShapeTool {
     @Override
     public void onMouseDragged(MouseEvent event, Color fillColor, Color borderColor, double borderWidth) {
         if (!toggleButton.isSelected()) {
-            return;  // Allow other tools to handle mouse events if the selection tool is not active
+            return;
         }
 
+        // Clear the overlay canvas before drawing new visuals
+        overlayGc.clearRect(0, 0, overlayCanvas.getWidth(), overlayCanvas.getHeight());
+
         if (isSelecting) {
-            // Update selection rectangle while dragging the mouse
+            // Update the selection rectangle while dragging
             selectionX = Math.min(startX, event.getX());
             selectionY = Math.min(startY, event.getY());
             selectionWidth = Math.abs(event.getX() - startX);
             selectionHeight = Math.abs(event.getY() - startY);
 
-            overlayGc.clearRect(0, 0, overlayCanvas.getWidth(), overlayCanvas.getHeight());  // Clear previous visuals
-
-            // Draw the selection rectangle with a gray dashed border on the overlay
+            // Draw the selection rectangle with a dashed border on the overlay canvas
             overlayGc.setStroke(Color.BLACK);
             overlayGc.setLineDashes(5);
             overlayGc.strokeRect(selectionX, selectionY, selectionWidth, selectionHeight);
+
         } else if (isDragging && selectedImage != null) {
-            // Drag the selected image
+            // Move the selected area during drag
             double newX = event.getX() - offsetX;
             double newY = event.getY() - offsetY;
 
@@ -87,8 +87,11 @@ public class MoveSelectionTool extends ShapeTool {
     @Override
     public void onMouseReleased(MouseEvent event, Color fillColor, Color borderColor, double borderWidth) {
         if (!toggleButton.isSelected()) {
-            return;  // Allow other tools to handle mouse events if the selection tool is not active
+            return;
         }
+
+        // Clear the overlay canvas after the selection is placed
+        overlayGc.clearRect(0, 0, overlayCanvas.getWidth(), overlayCanvas.getHeight());
 
         if (isSelecting) {
             isSelecting = false;
@@ -96,50 +99,39 @@ public class MoveSelectionTool extends ShapeTool {
         } else if (isDragging) {
             isDragging = false;
             finalizeMove(event);  // Finalize the move on the main canvas
-            overlayGc.clearRect(0, 0, overlayCanvas.getWidth(), overlayCanvas.getHeight());  // Clear the overlay
         }
-    }
-
-    public void copySelection() {
-        if (selectedImage != null) {
-            // Copy the selected image to clipboard
-            clipboardImage = selectedImage;
-        }
-    }
-
-    public void pasteSelection(double x, double y) {
-        if (clipboardImage != null) {
-            // Draw the copied image at the specified location
-            gc.drawImage(clipboardImage, x, y);
-        }
-    }
-
-    public void updateCanvasSnapshot() {
-        // Create a new snapshot with the new canvas dimensions
-        canvasSnapshot = new WritableImage((int) gc.getCanvas().getWidth(), (int) gc.getCanvas().getHeight());
-        gc.getCanvas().snapshot(null, canvasSnapshot);
-        overlayCanvas.setHeight(gc.getCanvas().getHeight());
-        overlayCanvas.setWidth(gc.getCanvas().getWidth());
-        // Reset the selection if necessary
-        selectedImage = null;
     }
 
     private void captureSelection() {
-        PixelReader reader = gc.getCanvas().snapshot(null, null).getPixelReader();
-        selectedImage = new WritableImage(reader, (int) selectionX, (int) selectionY, (int) selectionWidth, (int) selectionHeight);
-        canvasSnapshot = new WritableImage((int) gc.getCanvas().getWidth(), (int) gc.getCanvas().getHeight());
-        gc.getCanvas().snapshot(null, canvasSnapshot);
+        if (selectionWidth > 0 && selectionHeight > 0) {
+            PixelReader reader = gc.getCanvas().snapshot(null, null).getPixelReader();
+            selectedImage = new WritableImage(reader, (int) selectionX, (int) selectionY, (int) selectionWidth, (int) selectionHeight);
+
+            // Restore the canvas without the selected area to avoid duplication when moving
+            gc.drawImage(canvasSnapshot, 0, 0);
+            gc.setFill(Color.WHITE);  // Optionally fill the original area with white or another color
+            gc.fillRect(selectionX, selectionY, selectionWidth, selectionHeight);
+        }
     }
 
     private void finalizeMove(MouseEvent event) {
         double newX = event.getX() - offsetX;
         double newY = event.getY() - offsetY;
 
+        // Draw the selected image in its new position on the main canvas
         gc.drawImage(selectedImage, newX, newY);
-        canvasSnapshot = new WritableImage((int) gc.getCanvas().getWidth(), (int) gc.getCanvas().getHeight());
-        gc.getCanvas().snapshot(null, canvasSnapshot);
+
+        // Clear the selected image and reset the canvas
         selectedImage = null;
     }
-}
 
-//////////working checkpoint ////////////////////
+    public void updateOverlayCanvasSize(double newWidth, double newHeight) {
+        overlayCanvas.setWidth(newWidth);
+        overlayCanvas.setHeight(newHeight);
+    }
+
+    @Override
+    protected String getShapeName() {
+        return "Move Selection";
+    }
+}

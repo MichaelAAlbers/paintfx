@@ -13,8 +13,8 @@ public class VarStarTool extends ShapeTool {
     private int numberOfPoints = 5; // Default to 5 points
     private boolean isPointsPrompted = false; // Track if the points have been prompted
 
-    public VarStarTool(GraphicsContext gc, ToggleButton toggleButton) {
-        super(gc, toggleButton);
+    public VarStarTool(GraphicsContext gc, Logger logger, ToggleButton toggleButton) {
+        super(gc, logger, toggleButton);
 
         // Listen for changes to the toggle button
         toggleButton.selectedProperty().addListener((observable, oldValue, newValue) -> {
@@ -87,5 +87,11 @@ public class VarStarTool extends ShapeTool {
         gc.setStroke(borderColor);
         gc.setLineWidth(borderWidth);
         gc.strokePolygon(xPoints, yPoints, numberOfPoints * 2);
+    }
+
+    @Override
+    protected String getShapeName() {
+        String points = String.valueOf(numberOfPoints);
+        return points + " Sided Star";
     }
 }

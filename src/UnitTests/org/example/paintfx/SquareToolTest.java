@@ -23,6 +23,8 @@ class SquareToolTest {
     private SquareTool squareTool;
     private ToggleButton toggleButton;
 
+    private Logger logger = new Logger();
+
     // Initialize the JavaFX toolkit once
     @BeforeAll
     public static void initToolkit() {
@@ -45,7 +47,7 @@ class SquareToolTest {
             canvas = new Canvas(400, 400);  // Initialize a 400x400 canvas
             gc = canvas.getGraphicsContext2D();
             toggleButton = new ToggleButton();
-            squareTool = new SquareTool(gc, toggleButton);
+            squareTool = new SquareTool(gc, logger, toggleButton);
             latch.countDown();
         });
 

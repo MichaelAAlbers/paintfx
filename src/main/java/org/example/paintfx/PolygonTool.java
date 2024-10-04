@@ -26,9 +26,9 @@ public class PolygonTool extends ShapeTool {
      * @param toggleButton  the toggle button.
      * @return public
      */
-    public PolygonTool(GraphicsContext gc, ToggleButton toggleButton) {
+    public PolygonTool(GraphicsContext gc, Logger logger, ToggleButton toggleButton) {
 
-        super(gc, toggleButton);
+        super(gc, logger, toggleButton);
 
         // Listen for changes to the toggle button
         toggleButton.selectedProperty().addListener((observable, oldValue, newValue) -> {
@@ -132,5 +132,11 @@ public class PolygonTool extends ShapeTool {
         gc.setStroke(borderColor);
         gc.setLineWidth(borderWidth);
         gc.strokePolygon(xPoints, yPoints, numberOfSides);
+    }
+
+    @Override
+    protected String getShapeName() {
+        String numSidesString = String.valueOf(numberOfSides);
+        return numSidesString + " Sided Polygon";
     }
 }
