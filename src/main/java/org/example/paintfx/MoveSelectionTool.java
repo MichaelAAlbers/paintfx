@@ -6,16 +6,15 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 
 public class MoveSelectionTool extends ShapeTool {
 
     private WritableImage selectedImage;  // Stores the selected part of the canvas
     private WritableImage clipboardImage; // Clipboard for copy/paste
-    private boolean isSelecting = false;
+    public boolean isSelecting = false;
     private boolean isDragging = false;
-    private double selectionX, selectionY, selectionWidth, selectionHeight;
+    public double selectionX, selectionY, selectionWidth, selectionHeight;
     private double offsetX, offsetY;  // Track offset when dragging
 
     private Canvas overlayCanvas;  // The overlay canvas for visual feedback
@@ -128,6 +127,31 @@ public class MoveSelectionTool extends ShapeTool {
     public void updateOverlayCanvasSize(double newWidth, double newHeight) {
         overlayCanvas.setWidth(newWidth);
         overlayCanvas.setHeight(newHeight);
+    }
+
+    public boolean isSelectionActive(){
+        return selectedImage != null;
+    }
+
+    public WritableImage getSelectedImage() {
+        return selectedImage;
+    }
+
+    public void applyRotatedSelection(WritableImage rotatedImage) {
+        // Clear the original selection area
+        gc.setFill(Color.WHITE);
+        gc.fillRect(selectionX, selectionY, selectionWidth, selectionHeight);
+
+        // Adjust selection dimensions to match the rotated image
+        double temp = selectionWidth;
+        selectionWidth = selectionHeight;
+        selectionHeight = temp;
+
+        // Draw the rotated image at the new position
+        gc.drawImage(rotatedImage, selectionX, selectionY);
+
+        // Clear the selected image to indicate the selection is no longer active
+        selectedImage = null;
     }
 
     @Override

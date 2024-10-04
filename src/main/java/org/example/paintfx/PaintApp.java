@@ -183,10 +183,10 @@ public class PaintApp extends Application {
 
         CanvasRotator rotator = new CanvasRotator(logger);
 
-        clockWiseButton.setOnAction(e-> rotator.rotateRight(canvas));
-        counterClockWiseButton.setOnAction(e -> rotator.rotateLeft(canvas));
-        mirrorHorizontalButton.setOnAction(e -> rotator.mirrorHorizontally(canvas));
-        mirrorVerticalButton.setOnAction(e -> rotator.mirrorVertically(canvas));
+        clockWiseButton.setOnAction(e-> rotator.rotateRight(canvas, moveSelectionTool));
+        counterClockWiseButton.setOnAction(e -> rotator.rotateLeft(canvas, moveSelectionTool));
+        mirrorHorizontalButton.setOnAction(e -> rotator.mirrorHorizontally(canvas, moveSelectionTool));
+        mirrorVerticalButton.setOnAction(e -> rotator.mirrorVertically(canvas, moveSelectionTool));
         currentTool = new RectangleTool(gc, logger, rectButton);
 
         // Undo and Redo buttons
