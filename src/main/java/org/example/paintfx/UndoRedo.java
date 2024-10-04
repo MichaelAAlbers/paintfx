@@ -25,16 +25,7 @@ public class UndoRedo {
     /** The graphics context used for drawing on the canvas. */
     private GraphicsContext gc;
 
-    /**
-     * Initializes the {@code UndoRedo} manager with a given canvas. The graphics context
-     * is automatically derived from the canvas.
-     *
-     * @param canvas The canvas where drawing operations occur.
-     */
-    public void UndoRedoManager(Canvas canvas) {
-        this.canvas = canvas;
-        this.gc = canvas.getGraphicsContext2D();
-    }
+    protected Logger logger;
 
     /**
      * Initializes the {@code UndoRedo} manager with a given canvas and graphics context.
@@ -42,9 +33,10 @@ public class UndoRedo {
      * @param canvas The canvas where drawing operations occur.
      * @param gc The graphics context for drawing on the canvas.
      */
-    public UndoRedo(Canvas canvas, GraphicsContext gc) {
+    public UndoRedo(Canvas canvas, Logger logger, GraphicsContext gc) {
         this.canvas = canvas;
         this.gc = gc;
+        this.logger = logger;
     }
 
     /**
@@ -73,6 +65,7 @@ public class UndoRedo {
             WritableImage previousImage = undoStack.pop();
             gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());  // Clear the canvas
             gc.drawImage(previousImage, 0, 0);
+            logger.logEvent("Tab 0", "Undo last action");
         }
     }
 
@@ -91,6 +84,7 @@ public class UndoRedo {
             WritableImage redoImage = redoStack.pop();
             gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());  // Clear the canvas
             gc.drawImage(redoImage, 0, 0);
+            logger.logEvent("Tab 0", "Redo last undo");
         }
     }
 

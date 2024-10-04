@@ -68,8 +68,10 @@ public class AutosaveManager {
 
     public void stopAutosave() {
         if (autosaveTimer != null) {
-            autosaveTimer.cancel();
-            autosaveTimer = null;
+            autosaveTimer.cancel();  // Stop the autosave timer
+            autosaveTimer.purge();   // Removes all canceled tasks from the timer
+            autosaveTimer = null;    // Set the timer to null to ensure it stops running
+            System.out.println("Autosave stopped.");
         }
     }
 

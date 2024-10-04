@@ -15,6 +15,7 @@ public class UndoRedoTest {
     private Canvas canvas;
     private GraphicsContext gc;
     private UndoRedo undoRedoManager;
+    private Logger logger;
 
     @Before
     public void setUp() throws Exception {
@@ -29,7 +30,7 @@ public class UndoRedoTest {
         Platform.runLater(() -> {
             canvas = new Canvas(200, 200);
             gc = canvas.getGraphicsContext2D();
-            undoRedoManager = new UndoRedo(canvas, gc);
+            undoRedoManager = new UndoRedo(canvas, logger, gc);
             latch.countDown();
         });
 

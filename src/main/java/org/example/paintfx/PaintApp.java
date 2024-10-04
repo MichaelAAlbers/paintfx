@@ -48,7 +48,7 @@ public class PaintApp extends Application {
     private int initialWidth = 800;
     private int initialHeight = 600;
     private Canvas canvas = new Canvas(initialWidth, initialHeight);                   //canvas that can be drawn on
-
+    Logger logger;
     public Canvas overlayCanvas = new Canvas( );
     public GraphicsContext overlayGc = overlayCanvas.getGraphicsContext2D();
     private ShapeTool currentTool;
@@ -81,7 +81,7 @@ public class PaintApp extends Application {
 
     private TabPane tabPane;
 
-    UndoRedo undoRedo = new UndoRedo(canvas, gc);
+    UndoRedo undoRedo = new UndoRedo(canvas, logger, gc);
 
     private AutosaveManager autosaveManager;
     private Label countdownLabel;
@@ -89,8 +89,7 @@ public class PaintApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws IOException {
-        Logger logger = new Logger();
-
+        logger = new Logger();
         tabPane = new TabPane();
         ScrollPane scrollPane = new ScrollPane(tabPane);
         // Add an initial tab on startup
@@ -182,7 +181,7 @@ public class PaintApp extends Application {
         varStarButton.setOnAction(e -> currentTool = varStarTool);
 
 
-        CanvasRotator rotator = new CanvasRotator();
+        CanvasRotator rotator = new CanvasRotator(logger);
 
         clockWiseButton.setOnAction(e-> rotator.rotateRight(canvas));
         counterClockWiseButton.setOnAction(e -> rotator.rotateLeft(canvas));
@@ -347,7 +346,7 @@ public class PaintApp extends Application {
 
             //f1 to show "help"
             scene.getAccelerators().put(
-                    new KeyCodeCombination(KeyCode.F1),
+                    new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN),
                     this::showHelp
             );
 
@@ -400,6 +399,7 @@ public class PaintApp extends Application {
 
 
                 currentFile = file;
+                logger.logEvent("Tab 0", "Opened new image " + file);
             } catch (IOException ex) {
                 errorPopup("Could not open image file.");
             }
@@ -672,6 +672,7 @@ public class PaintApp extends Application {
 
                 // Close the popup window after applying the changes
                 popupStage.close();
+                logger.logEvent("Tab 0", "Canvas Dimensions changed to " + newWidth + "x" + newHeight);
             } catch (NumberFormatException e) {
                 System.out.println("Invalid dimensions entered. Please enter valid numbers.");
             }
@@ -764,6 +765,7 @@ public class PaintApp extends Application {
     private final EventHandler<MouseEvent> drawMouseReleasedHandler = event -> {
         if (drawingEnabled) {
             gc.closePath();  // Optional: closes the path if needed
+            logger.logEvent("Tab 0", "Draw Line");
         }
     };
 
@@ -818,6 +820,7 @@ public class PaintApp extends Application {
     private final EventHandler<MouseEvent> eraserMouseReleasedHandler = event -> {
         if (eraserEnabled) {
             gc.closePath(); // Optional: closes the path if needed
+            logger.logEvent("Tab 0", "Eraser Used");
         }
     };
 
@@ -854,6 +857,7 @@ public class PaintApp extends Application {
             // Finalize the line when the mouse is released
             gc.setStroke(currentColor.getValue());
             gc.strokeLine(startX, startY, event.getX(), event.getY());
+            logger.logEvent("Tab 0", "Draw Straight Line");
         });
 
         return straightLine;
@@ -1037,7 +1041,7 @@ public class PaintApp extends Application {
         localStackPane.getChildren().addAll(localCanvas, localOverlayCanvas);
 
         // Initialize UndoRedo for this canvas
-        UndoRedo localUndoRedo = new UndoRedo(localCanvas, localGc);
+        UndoRedo localUndoRedo = new UndoRedo(localCanvas, logger, localGc);
 
         // Set the content of the tab to the StackPane
         tab.setContent(localStackPane);

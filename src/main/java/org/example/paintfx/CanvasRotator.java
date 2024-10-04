@@ -7,6 +7,12 @@ import javafx.scene.image.WritableImage;
 
 public class CanvasRotator {
 
+    Logger logger;
+    public CanvasRotator(Logger logger){
+        this.logger = logger;
+    }
+
+
     /**
      * Rotates the given canvas 90 degrees clockwise (to the right).
      *
@@ -33,6 +39,7 @@ public class CanvasRotator {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, newWidth, newHeight);
         gc.drawImage(rotatedImage, 0, 0);
+        logger.logEvent("Tab 0", "Rotate Right");
     }
 
     /**
@@ -61,6 +68,8 @@ public class CanvasRotator {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, newWidth, newHeight);
         gc.drawImage(rotatedImage, 0, 0);
+        logger.logEvent("Tab 0", "Rotate Left");
+
     }
 
 
@@ -88,6 +97,8 @@ public class CanvasRotator {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, width, height);
         gc.drawImage(mirroredImage, 0, 0);
+        logger.logEvent("Tab 0", "Mirror Horizontally");
+
     }
 
     /**
@@ -114,6 +125,7 @@ public class CanvasRotator {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, width, height);
         gc.drawImage(mirroredImage, 0, 0);
+        logger.logEvent("Tab 0", "Mirror Vertically");
     }
 
     /**
