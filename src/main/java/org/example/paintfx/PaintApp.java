@@ -188,7 +188,7 @@ public class PaintApp extends Application {
         counterClockWiseButton.setOnAction(e -> rotator.rotateLeft(canvas));
         mirrorHorizontalButton.setOnAction(e -> rotator.mirrorHorizontally(canvas));
         mirrorVerticalButton.setOnAction(e -> rotator.mirrorVertically(canvas));
-
+        currentTool = new RectangleTool(gc, logger, rectButton);
 
         // Undo and Redo buttons
         Button undoButton = new Button("Undo");
@@ -211,7 +211,7 @@ public class PaintApp extends Application {
                 addNewTab();
                 tabPane.getSelectionModel().select(tabPane.getTabs().size() - 1);  // Select the newly created tab (which is now second-to-last)
             } else if (newTab != null) {
-                logger.logEvent("Tab " + tabPane.getSelectionModel().getSelectedIndex(), "Switched to Tab");
+                logger.logEvent("Tab " + tabPane.getSelectionModel().getSelectedIndex(), "Switched Tab");
                 // Otherwise, handle switching to the selected tab
                 TabContent selectedContent = (TabContent) newTab.getUserData();
                 this.canvas = selectedContent.getCanvas();
