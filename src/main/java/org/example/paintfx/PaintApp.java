@@ -273,8 +273,6 @@ public class PaintApp extends Application {
             undoButton,
             redoButton,
             clearButton,
-            textButton,
-            moveSelectionButton,
             copyButton, pasteButton
         );
 
@@ -290,7 +288,9 @@ public class PaintApp extends Application {
                 triangleButton,
                 starButton,
                 polygonButton,
-                varStarButton
+                varStarButton,
+                moveSelectionButton,
+                textButton
         );
 
 
@@ -347,7 +347,7 @@ public class PaintApp extends Application {
 
             //f1 to show "help"
             scene.getAccelerators().put(
-                    new KeyCodeCombination(KeyCode.F1, KeyCombination.CONTROL_DOWN),
+                    new KeyCodeCombination(KeyCode.F1),
                     this::showHelp
             );
 
