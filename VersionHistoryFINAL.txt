@@ -1,0 +1,236 @@
+PaintFX Final
+10/28/2024
+Github: https://github.com/MichaelAAlbers/paintfx
+Feature Demo: https://youtu.be/iMnXR-MtXl8
+
+New Features: 
+	*Javadoc successfully generated
+	*UML Diagrams
+Known Issues
+	*Some functions such as canvas dimension adjustment need to swap tabs back and forth to refresh the canvas
+Planned Features:
+	*N/A
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PaintFX update v6.0
+10/4/2024
+https://github.com/MichaelAAlbers/paintfx
+
+New Features: 
+	*rotation and mirroring of canvas or selected area
+	*logging
+	*icons and tooltips for various tools
+	*notifications(optional)
+	*various keybinds
+
+Known issues:
+	*selected area outline disappears while dragging
+	*"+" add new tab doesn't automatically shift to last tab position
+	
+Planned Features:
+	* Tab specific logging
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+PaintFX update v5.0
+9/29/2024
+https://github.com/MichaelAAlbers/paintfx
+
+New Features: 
+
+* Tabs fully implemented
+* Autosave with optional visible timer
+
+* webserver hosting for tab 0: located at http://localhost:8080/canvas
+
+* draw a regular side polygon with any #of sides
+
+* JavaDoc commenting
+* warning on saving with alternative file formats
+
+
+Known issues:
+	*when selecting a portion of the canvas to drag and move, the border outline is not visible, functionality remains
+	
+Planned Features:
+	* menu and tool redesign: icons for buttons instead of labels
+	* show tool tips when hovering over icons 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+PaintFX update v4.0
+9/20/2024
+New Features: 
+
+* Undo and Redo 
+
+* provide a blank starting image and a clear canvas (with "are you sure" check) tool
+
+* draw variable pointed star 
+
+* draw a regular side polygon with any #of sides
+
+* select and copy/paste a piece of the image 
+
+* select and move a piece of the image
+
+* allow the addition of text from user-typed input
+
+* added one tab, currently multiple tabs are not supported
+
+* github added: https://github.com/MichaelAAlbers/paintfx
+
+Known issues:
+	*max 1 tab works
+	
+Planned Features:
+	* Undo and Redo - this MUST use at least (more is ok) one "stack" (this is an abstract data structure in Java)
+
+	* provide a blank starting image and a clear canvas (with "are you sure" check) tool
+
+	* draw yet another additional shape of your choice
+
+	* be able to draw a regular side polygon with any #of sides
+
+	* select and copy/paste a piece of the image  - "live draw" is required for this and other edits/draws
+
+	* select and move a piece of the image
+
+	* allow the addition of text from user-typed input to your image.
+
+	* tabs are required.
+
+	* git use is required. (github is fine)
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PaintFX update v3.0
+9/16/2024
+New Features: 
+
+	* have width sliders for lines and shape borders
+
+	* draw square, circle, rectangle, ellipse, triangle, and star
+
+	* keyboard shortcuts (control S for save, etc)
+
+	* text label for colors (hex/rgb/English name)
+
+	* color grabber (has to modify shapes)
+
+	* resize canvas
+
+	* straight line drawing
+
+	* dashed outline of shape / line
+
+	* smart/aware save ("you're about to close without saving...")
+
+
+Known issues:
+	*Color chooser doesn't affect anything yet
+	
+Planned Features:
+	* Undo and Redo - this MUST use at least (more is ok) one "stack" (this is an abstract data structure in Java)
+
+	* provide a blank starting image and a clear canvas (with "are you sure" check) tool
+
+	* draw yet another additional shape of your choice
+
+	* be able to draw a regular side polygon with any #of sides
+
+	* select and copy/paste a piece of the image  - "live draw" is required for this and other edits/draws
+
+	* select and move a piece of the image
+
+	* allow the addition of text from user-typed input to your image.
+
+	* tabs are required.
+
+	* git use is required. (github is fine)
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PaintFX update v2.0
+9/6/2024
+New features:
+	* draw a line 
+	* scroll for large images
+	* line width slier
+	* color chooser 
+	* help menu, about menu	
+
+
+Known issues:
+	*Color chooser doesn't affect anything yet
+	*One large file
+
+Planned Features:
+	* have width controls  (width controls as in control width of a regular line or the line-edges of shapes)
+
+	* draw square, circle, rectangle, ellipse, triangle
+
+	keyboard shortcuts (control S for save, etc)
+	inform user as to pixel size of width
+	* text label for colors (hex/rgb/English name)
+
+	* color grabber (has to modify shapes)
+
+	* resize canvas (for larger drawing)
+
+	* pencil (curved) or straight line (whichever you didn't do last time)
+
+	* dashed outline of shape / line
+
+	* smart/aware save ("you're about to close without saving...")
+
+	* tabs (optional possible bonus, will be required week 4)
+
+	include some sort of pun on Java.
+	have an eraser tool
+	draw an additional shape of your choice.
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PaintFX v1.0
+8/30/2024
+CS-250
+
+New features:
+	* Open Image
+	* Save Image
+	* Save as
+	* menu bar
+	* .jpg, .png, .bmp support and conversion
+
+Known issues:
+
+	* Not on GitHub
+
+Planned Features:
+
+	* draw a line (which would become part of the saved image / save an image with those edits)
+
+	* manage an image larger than the window and the screen (up to you how to do this)
+
+	* allow you to control the width of the line drawn
+
+	* have a color chooser (it is NOT required to impact the line, yet)
+
+	* have a help menu item with help and about options; about should be a separate window.
+
+Links:
+
+	*output test: https://streamable.com/ba4bws * Demo: TBD * Github: TBD
