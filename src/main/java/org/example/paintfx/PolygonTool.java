@@ -43,7 +43,7 @@ public class PolygonTool extends ShapeTool {
         });
     }
 
-    @Override
+
 
 /**
  *
@@ -54,6 +54,7 @@ public class PolygonTool extends ShapeTool {
  * @param borderColor  the border color.
  * @param borderWidth  the border width.
  */
+    @Override
     public void onMouseDragged(MouseEvent event, Color fillColor, Color borderColor, double borderWidth) {
 
         if (!this.toggleButton.isSelected()) {

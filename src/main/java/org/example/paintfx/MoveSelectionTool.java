@@ -11,7 +11,6 @@ import javafx.scene.paint.Color;
 public class MoveSelectionTool extends ShapeTool {
 
     private WritableImage selectedImage;  // Stores the selected part of the canvas
-    private WritableImage clipboardImage; // Clipboard for copy/paste
     public boolean isSelecting = false;
     private boolean isDragging = false;
     public double selectionX, selectionY, selectionWidth, selectionHeight;

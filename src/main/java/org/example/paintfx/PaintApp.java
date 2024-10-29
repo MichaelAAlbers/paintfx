@@ -81,7 +81,7 @@ public class PaintApp extends Application {
 
     private TabPane tabPane;
 
-    UndoRedo undoRedo = new UndoRedo(canvas, logger, gc);
+    UndoRedo undoRedo;
 
     private AutosaveManager autosaveManager;
     private Label countdownLabel;
@@ -190,6 +190,7 @@ public class PaintApp extends Application {
         currentTool = new RectangleTool(gc, logger, rectButton);
 
         // Undo and Redo buttons
+        undoRedo = new UndoRedo(canvas, logger, gc);
         Button undoButton = new Button("Undo");
         undoButton.setOnAction(e -> undoRedo.undo());
 
@@ -1022,6 +1023,7 @@ public class PaintApp extends Application {
         Tab tab = new Tab("Canvas " + (tabPane.getTabs().size()));
         tab.setClosable(true);
 
+
         // Create a StackPane to hold the Canvas and Overlay Canvas
         StackPane localStackPane = new StackPane();
         localStackPane.setAlignment(Pos.TOP_LEFT);
@@ -1054,7 +1056,8 @@ public class PaintApp extends Application {
         setupCanvasEventHandlers(localCanvas, localUndoRedo);
 
         // Add the new tab to the TabPane
-        tabPane.getTabs().add(tab);
+        //tabPane.getTabs().add(tab);
+        tabPane.getTabs().add(tabPane.getTabs().size(), tab);
 
         // Select the newly added tab
         tabPane.getSelectionModel().select(tab);
@@ -1075,48 +1078,7 @@ public class PaintApp extends Application {
             }
         });
     }
-    // Helper class to store the tab's content (Canvas, GraphicsContext, StackPane, UndoRedo, and Overlay Canvas)
-    class TabContent {
-        private final Canvas canvas;
-        private final GraphicsContext graphicsContext;
-        private final Canvas overlayCanvas;
-        private final GraphicsContext overlayGraphicsContext;
-        private final StackPane stackPane;
-        private final UndoRedo undoRedo;
 
-        public TabContent(Canvas canvas, GraphicsContext graphicsContext, Canvas overlayCanvas, GraphicsContext overlayGraphicsContext, StackPane stackPane, UndoRedo undoRedo) {
-            this.canvas = canvas;
-            this.graphicsContext = graphicsContext;
-            this.overlayCanvas = overlayCanvas;
-            this.overlayGraphicsContext = overlayGraphicsContext;
-            this.stackPane = stackPane;
-            this.undoRedo = undoRedo;
-        }
-
-        public Canvas getCanvas() {
-            return canvas;
-        }
-
-        public GraphicsContext getGraphicsContext() {
-            return graphicsContext;
-        }
-
-        public Canvas getOverlayCanvas() {
-            return overlayCanvas;
-        }
-
-        public GraphicsContext getOverlayGraphicsContext() {
-            return overlayGraphicsContext;
-        }
-
-        public StackPane getStackPane() {
-            return stackPane;
-        }
-
-        public UndoRedo getUndoRedo() {
-            return undoRedo;
-        }
-    }
 
     // Set up event handlers for the given canvas and undoRedo stack
     private void setupCanvasEventHandlers(Canvas canvas, UndoRedo undoRedo) {
