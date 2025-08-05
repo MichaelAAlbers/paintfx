@@ -17,6 +17,11 @@ public class DrawTool {
     private final ObjectProperty<Color> currentColor;
     private final double lineWidth;
 
+    // Keep references to the handlers so they can be properly removed
+    private EventHandler<MouseEvent> pressedHandler;
+    private EventHandler<MouseEvent> draggedHandler;
+    private EventHandler<MouseEvent> releasedHandler;
+
     // Constructor to initialize the drawing tool
     public DrawTool(ObjectProperty<Color> currentColor, double lineWidth) {
         this.currentColor = currentColor;
@@ -43,17 +48,30 @@ public class DrawTool {
             removeHandlers(canvas);
 
             // Add mouse event handlers to the active canvas
-            canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, drawMousePressedHandler(gc));
-            canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, drawMouseDraggedHandler(gc));
-            canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, drawMouseReleasedHandler(gc));
+            pressedHandler = drawMousePressedHandler(gc);
+            draggedHandler = drawMouseDraggedHandler(gc);
+            releasedHandler = drawMouseReleasedHandler(gc);
+
+            canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, pressedHandler);
+            canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, draggedHandler);
+            canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, releasedHandler);
         }
     }
 
     // Remove drawing event handlers from the given canvas
     public void removeHandlers(Canvas canvas) {
-        canvas.removeEventHandler(MouseEvent.MOUSE_PRESSED, drawMousePressedHandler(null));
-        canvas.removeEventHandler(MouseEvent.MOUSE_DRAGGED, drawMouseDraggedHandler(null));
-        canvas.removeEventHandler(MouseEvent.MOUSE_RELEASED, drawMouseReleasedHandler(null));
+        if (pressedHandler != null) {
+            canvas.removeEventHandler(MouseEvent.MOUSE_PRESSED, pressedHandler);
+            pressedHandler = null;
+        }
+        if (draggedHandler != null) {
+            canvas.removeEventHandler(MouseEvent.MOUSE_DRAGGED, draggedHandler);
+            draggedHandler = null;
+        }
+        if (releasedHandler != null) {
+            canvas.removeEventHandler(MouseEvent.MOUSE_RELEASED, releasedHandler);
+            releasedHandler = null;
+        }
     }
 
     // Handlers for mouse events, dynamically applying to the active canvas
